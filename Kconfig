@@ -1,0 +1,10 @@
+config SND_I2S_RPI
+	tristate "rpi-i2s-dac-adc"
+	select NLS
+	help
+	  rpi-i2s-dac-adc support
+
+config SND_I2S_RPI_DEBUG_MSG
+	bool "print debug messages"
+	depends on SND_I2S_RPI
+	default n
