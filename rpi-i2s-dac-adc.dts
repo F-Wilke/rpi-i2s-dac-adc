@@ -38,7 +38,7 @@
 	fragment@3 {
 		target = <&sound>;
 		__overlay__ {
-			compatible = "hifiberry,hifiberry-dac";
+			compatible = "tekade,rpi-i2s-dac-adc";
 			i2s-controller = <&i2s>;
 			status = "okay";
 		};

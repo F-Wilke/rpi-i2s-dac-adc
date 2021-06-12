@@ -35,21 +35,21 @@ export CONFIG_SND_I2S_RPI := m
 all:
 	$(MAKE) -C $(KDIR) M=$(PWD) 
 	
-	rm bin/$(MOD_NAME).dtbo
-	dtc -@ -Hepapr -I dts -O dtb -o bin/$(MOD_NAME).dtbo rpi-i2s-dac-adc-overlay.dts
+	rm -f bin/$(MOD_NAME).dtbo
+	dtc -@ -Hepapr -I dts -O dtb -o bin/$(MOD_NAME).dtbo $(MOD_NAME).dts
 
 clean:
 	$(MAKE) -C $(KDIR) M=$(PWD) clean
 
-	rm bin/$(MOD_NAME).dtbo
-	dtc -@ -Hepapr -I dts -O dtb -o bin/$(MOD_NAME).dtbo rpi-i2s-dac-adc-overlay.dts
+	rm -f bin/$(MOD_NAME).dtbog
+	dtc -@ -Hepapr -I dts -O dtb -o bin/$(MOD_NAME).dtbo $(MOD_NAME).dts
 
 help:
 	$(MAKE) -C $(KDIR) M=$(PWD) help
 
 install: rpi-i2s-dac-adc.ko
 	rm -f ${MDIR}/kernel/sound/drivers/$(MOD_NAME).ko
-	rm /boot/overlays/$(MOD_NAME).dtbo
+	rm -f /boot/overlays/$(MOD_NAME).dtbo
 
 	install -m644 -b -D $(MOD_NAME).ko ${MDIR}/kernel/sound/drivers/$(MOD_NAME).ko
 	cp bin/$(MOD_NAME).dtbo /boot/overlays/$(MOD_NAME).dtbo
@@ -59,7 +59,7 @@ install: rpi-i2s-dac-adc.ko
 
 uninstall:
 	rm -rf ${MDIR}/kernel/sound/drivers/$(MOD_NAME).ko
-	rm /boot/overlays/$(MOD_NAME).dtbo
+	rm -f /boot/overlays/$(MOD_NAME).dtbo
 	depmod -aq
 
 endif

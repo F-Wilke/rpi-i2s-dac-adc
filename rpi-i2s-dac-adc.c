@@ -39,6 +39,10 @@
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
 
+
+struct platform_device *dmic_codec_dev;
+
+
 /* Parameters for generic RPI functions */
 struct snd_rpi_simple_drvdata {
 	struct snd_soc_dai_link *dai;
@@ -57,7 +61,7 @@ static int snd_rpi_simple_init(struct snd_soc_pcm_runtime *rtd)
 {
 	struct snd_rpi_simple_drvdata *drvdata =
 		snd_soc_card_get_drvdata(rtd->card);
-	struct snd_soc_dai *cpu_dai = asoc_rtd_to_cpu(rtd, 0);
+	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 
 	if (drvdata->fixed_bclk_ratio > 0)
 		return snd_soc_dai_set_bclk_ratio(cpu_dai,
@@ -70,7 +74,7 @@ static int snd_rpi_simple_hw_params(struct snd_pcm_substream *substream,
 		struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_dai *cpu_dai = asoc_rtd_to_cpu(rtd, 0);
+	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 	struct snd_rpi_simple_drvdata *drvdata;
 	unsigned int sample_bits;
 
@@ -92,11 +96,11 @@ static struct snd_soc_ops snd_rpi_simple_ops = {
 };
 
 SND_SOC_DAILINK_DEFS(rpi_i2s_dac_adc,
-	DAILINK_COMP_ARRAY(COMP_CPU("bcm2708-i2s.0")),
+	DAILINK_COMP_ARRAY(COMP_EMPTY()),
 	DAILINK_COMP_ARRAY(
 		COMP_CODEC("pcm5102a-codec", "pcm5102a-hifi"),
 		COMP_CODEC("dmic-codec", "dmic-hifi")),
-	DAILINK_COMP_ARRAY(COMP_CPU("bcm2708-i2s.0")));
+	DAILINK_COMP_ARRAY(COMP_EMPTY()));
 
 static struct snd_soc_dai_link snd_rpi_i2s_dac_adc_dai[] = {
 	{
@@ -115,14 +119,17 @@ static struct snd_rpi_simple_drvdata drvdata_rpi_i2s_dac_adc = {
 };
 
 static const struct of_device_id snd_rpi_i2s_dac_adc_of_match[] = {
-	{ .compatible = "tekade, rpi-i2s-dac-adc",
+	{ .compatible = "tekade,rpi-i2s-dac-adc",
 		.data = (void *) &drvdata_rpi_i2s_dac_adc },
+	{}
 };
 
 static int snd_rpi_i2s_dac_adc_probe(struct platform_device *pdev)
 {
 	int ret = 0;
 	const struct of_device_id *of_id;
+
+	printk(KERN_INFO "rpi_i2s_dac_adc evaluating %s\n", pdev->dev.init_name);
 
 	snd_rpi_simple.dev = &pdev->dev;
 	of_id = of_match_node(snd_rpi_i2s_dac_adc_of_match, pdev->dev.of_node);
@@ -170,9 +177,38 @@ static struct platform_driver snd_rpi_i2s_dac_adc_driver = {
 	},
 	.probe          = snd_rpi_i2s_dac_adc_probe,
 };
+
+
 MODULE_DEVICE_TABLE(of, snd_rpi_i2s_dac_adc_of_match);
 
-module_platform_driver(snd_rpi_i2s_dac_adc_driver);
+static int __init snd_rpi_i2s_dac_adc_init(void)
+{
+	int ret;
+
+	dmic_codec_dev = platform_device_register_simple("dmic-codec", -1, NULL,
+							 0);
+	if (IS_ERR(dmic_codec_dev)) {
+		pr_err("%s: dmic-codec device registration failed\n", __func__);
+		return PTR_ERR(dmic_codec_dev);
+	}
+
+	ret = platform_driver_register(&snd_rpi_i2s_dac_adc_driver);
+	if (ret) {
+		pr_err("%s: platform driver registration failed\n", __func__);
+		platform_device_unregister(dmic_codec_dev);
+	}
+
+	return ret;
+}
+module_init(snd_rpi_i2s_dac_adc_init);
+
+static void __exit snd_rpi_i2s_dac_adc_exit(void)
+{
+	platform_driver_unregister(&snd_rpi_i2s_dac_adc_driver);
+	platform_device_unregister(dmic_codec_dev);
+}
+module_exit(snd_rpi_i2s_dac_adc_exit);
+
 
 MODULE_AUTHOR("Fredrik Wilke <fw@tekade.eu>");
 MODULE_DESCRIPTION("Bidirectional i2s driver");
