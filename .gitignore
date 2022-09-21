@@ -1,0 +1,7 @@
+bin/*
+*.cmd
+*.mod*
+*.ko
+*.o
+*.symvers
+*.order
